@@ -15,11 +15,11 @@ rsync -avz go/src/fayon/deploy/nginx/ ali1:~/nginx/
 ```bash
 cd deploy/nginx/ 
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout ssl/server1.key \
-  -out ssl/server1.crt \
+  -keyout ssl/server.key \
+  -out ssl/server.crt \
   -subj "/C=CN/ST=Zhejiang/L=Hangzhou/O=Example/CN=localhost"
   
-chmod 600 ssl/server1.key
+chmod 600 ssl/server.key
   
 ```
 

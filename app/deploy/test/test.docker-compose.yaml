@@ -8,7 +8,7 @@ services:
     network_mode: host  # 保持host网络
     environment:
       - REDIS_HOST=localhost
-      - CONSUL_HOST=consul-server1  # 改为通过服务名访问Consul
+      - CONSUL_HOST=consul-server  # 改为通过服务名访问Consul
       - GF_GCFG_FILE=./config/config.test.yaml
     volumes:
       - ./logs:/app/logs
@@ -23,7 +23,7 @@ services:
     network_mode: host
     environment:
       - REDIS_HOST=localhost
-      - CONSUL_HOST=consul-server1
+      - CONSUL_HOST=consul-server
       - GF_GCFG_FILE=./config/config.test.yaml
     volumes:
       - ./logs:/app/logs
@@ -39,7 +39,7 @@ services:
     network_mode: host
     environment:
       - REDIS_HOST=localhost
-      - CONSUL_HOST=consul-server1
+      - CONSUL_HOST=consul-server
       - GF_GCFG_FILE=./config/config.test.yaml
     volumes:
       - ./logs:/app/logs
@@ -50,7 +50,7 @@ services:
 
   consul-server:
     image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/consul:hashicorp-1.17.0
-    container_name: consul-server1
+    container_name: consul-server
     restart: unless-stopped
     ports:
       - "8500:8500"  # Web UI

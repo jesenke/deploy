@@ -7,7 +7,7 @@
 
 ```bash
 将配置推送到对应服务器
-rsync -avz go/src/fayon/deploy/consul/server1/ ali1:~/consul/
+rsync -avz go/src/fayon/deploy/consul/server/ ali1:~/consul/
 rsync -avz go/src/fayon/deploy/consul/server2/ ali2:~/consul/
 rsync -avz go/src/fayon/deploy/consul/server3/ ali3:~/consul/
 ```

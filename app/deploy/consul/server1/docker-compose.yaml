@@ -3,8 +3,8 @@ version: '3.8'
 services:
   consul-server1:
     image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/consul:hashicorp-1.17.0
-    container_name: consul-server1
-    hostname: server1
+    container_name: consul-server
+    hostname: server
     restart: unless-stopped
     network_mode: "host"
     volumes:
