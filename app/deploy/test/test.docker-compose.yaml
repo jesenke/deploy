@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  fayon-app:
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v8651de0
+    container_name: fayon-app
+    restart: unless-stopped
+    network_mode: host  # 保持host网络
+    environment:
+      - REDIS_HOST=localhost
+      - CONSUL_HOST=consul-server1  # 改为通过服务名访问Consul
+      - GF_GCFG_FILE=./config/config.test.yaml
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    depends_on:
+      - consul-server
+
+  fayon-cron:
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v607b30f
+    container_name: fayon-cmd
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - REDIS_HOST=localhost
+      - CONSUL_HOST=consul-server1
+      - GF_GCFG_FILE=./config/config.test.yaml
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    command: ["/app/fayon", "--service=cmd"]
+    depends_on:
+      - consul-server
+
+  fayon-consume:
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v424a172
+    container_name: fayon-consume
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - REDIS_HOST=localhost
+      - CONSUL_HOST=consul-server1
+      - GF_GCFG_FILE=./config/config.test.yaml
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    command: ["/app/fayon", "--service=consume"]
+    depends_on:
+      - consul-server
+
+  consul-server:
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/consul:hashicorp-1.17.0
+    container_name: consul-server1
+    restart: unless-stopped
+    ports:
+      - "8500:8500"  # Web UI
+      - "8600:8600/tcp"  # DNS (TCP)
+      - "8600:8600/udp"  # DNS (UDP)
+    volumes:
+      - ./consul-data:/consul/data
+    command: >
+      agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+    networks:
+      - fayon-net
+
+networks:
+  fayon-net:
+    driver: bridge
