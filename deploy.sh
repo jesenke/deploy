@@ -4,6 +4,7 @@
 export LANG=C 2>/dev/null
 export LC_ALL=C 2>/dev/null
 
+
 SERVER="$1"
 VERSION="$2"
 ACTION="${3:-deploy}"  # 默认为部署
@@ -11,6 +12,34 @@ ACTION="${3:-deploy}"  # 默认为部署
 # 文件路径
 COMPOSE_FILE="app/deploy/server/docker-compose.yaml"
 VERSION_FILE="app/deploy/server/deploy-versions.log"
+
+SERVICES="fayon-app fayon-cron fayon-consume"
+
+# 服务到偏移量的映射
+get_service_offset() {
+    case "$1" in
+        "fayon-app") echo 0 ;;
+        "fayon-cron") echo 1 ;;
+        "fayon-consume") echo 2 ;;
+        "fayon-api") echo 3 ;;
+        "fayon-worker") echo 4 ;;
+        *) echo 0 ;;  # 默认值
+    esac
+}
+
+
+# 服务器到HOST_NODE基数的映射（兼容旧版本bash）
+get_server_base() {
+    case "$1" in
+        "ali1") echo 1000 ;;
+        "ali2") echo 2000 ;;
+        "ali3") echo 3000 ;;
+        "ali4") echo 4000 ;;
+        "ali5") echo 5000 ;;
+        *) echo 1000 ;;  # 默认值
+    esac
+}
+
 
 # 显示帮助
 show_help() {
@@ -26,6 +55,13 @@ show_help() {
     echo "  $0 ali1 current         # 查看当前版本"
     echo "  $0 ali1 history         # 查看版本历史"
     echo "  $0 ali1 backup          # 备份当前配置"
+    echo ""
+    echo "服务器HOST_NODE分配:"
+    echo "  ali1: 1000-1999"
+    echo "  ali2: 2000-2999"
+    echo "  ali3: 3000-3999"
+    echo "  ali4: 4000-4999"
+    echo "  ali5: 5000-5999"
 }
 
 # 检查参数
@@ -80,6 +116,64 @@ get_backup_files() {
     ssh "$server" "ls -la /root/server/backups/docker-compose-backup-*.yaml 2>/dev/null | tail -5" || echo "暂无备份文件"
 }
 
+# 为每个服务更新HOST_NODE
+update_host_nodes() {
+    local temp_file="$1"
+    local server="$2"
+
+    local server_base=$(get_server_base "$server")
+
+    echo "📊 HOST_NODE分配:"
+
+    # 遍历所有预定义的服务
+    for service in $SERVICES; do
+        local offset=$(get_service_offset "$service")
+        local host_node_value=$(($server_base + $offset))
+
+        # 更新单个服务的HOST_NODE
+        update_service_host_node "$temp_file" "$service" "$host_node_value"
+    done
+}
+
+# 更新单个服务的HOST_NODE（修复版）
+update_service_host_node() {
+    local temp_file="$1"
+    local service_name="$2"
+    local host_node_value="$3"
+
+    # 调试信息
+    echo "调试: 更新服务 $service_name 的 HOST_NODE 为 $host_node_value"
+
+    # 针对不同的服务使用不同的容器名匹配
+    local container_name="$service_name"
+    if [ "$service_name" = "fayon-cron" ]; then
+        container_name="fayon-cmd"  # fayon-cron服务的容器名是fayon-cmd
+    fi
+
+    # 使用sed更新指定服务的HOST_NODE
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # macOS
+        sed -i "" "/container_name: $container_name/,/volumes:/s/HOST_NODE=[0-9]*/HOST_NODE=$host_node_value/g" "$temp_file"
+        # 额外检查并修复可能的环境变量格式问题
+        sed -i "" "/container_name: $container_name/,/volumes:/s/- HOST_NODE=[0-9]*/- HOST_NODE=$host_node_value/g" "$temp_file"
+    else
+        # Linux
+        sed -i "/container_name: $container_name/,/volumes:/s/HOST_NODE=[0-9]*/HOST_NODE=$host_node_value/g" "$temp_file"
+        sed -i "/container_name: $container_name/,/volumes:/s/- HOST_NODE=[0-9]*/- HOST_NODE=$host_node_value/g" "$temp_file"
+    fi
+
+    # 验证修改是否成功
+    local actual_value=$(grep -A 10 "container_name: $container_name" "$temp_file" | grep "HOST_NODE=" | head -1 | cut -d= -f2)
+    if [ "$actual_value" = "$host_node_value" ]; then
+        echo "✅ $service_name: HOST_NODE=$host_node_value"
+    else
+        echo "❌ $service_name: 修改失败 (期望: $host_node_value, 实际: $actual_value)"
+        # 显示相关配置行以便调试
+        echo "调试信息:"
+        grep -A 5 -B 5 "container_name: $container_name" "$temp_file"
+    fi
+}
+
 # 部署版本
 deploy_version() {
     local server="$1"
@@ -105,10 +199,15 @@ deploy_version() {
     sed "s|image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:[^[:space:]]*|image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:$version|g" \
         "$COMPOSE_FILE" > "$TEMP_FILE"
 
+    # 更新HOST_NODE（为不同服务器生成不同的值）
+    echo "📊 HOST_NODE分配:"
+    update_host_nodes "$TEMP_FILE" "$server"
+
     # 部署
     echo "📤 复制文件到服务器..."
     scp "$TEMP_FILE" "$server:/root/server/docker-compose.yaml"
 
+    cat $TEMP_FILE
     echo "🚀 启动服务..."
     ssh "$server" "cd /root/server && docker compose up -d"
 
