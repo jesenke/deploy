@@ -21,8 +21,6 @@ get_service_offset() {
         "fayon-app") echo 0 ;;
         "fayon-cron") echo 1 ;;
         "fayon-consume") echo 2 ;;
-        "fayon-api") echo 3 ;;
-        "fayon-worker") echo 4 ;;
         *) echo 0 ;;  # 默认值
     esac
 }
