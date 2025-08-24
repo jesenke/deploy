@@ -3,13 +3,13 @@ version: '3.8'
 services:
   fayon-app:
     #image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v5c1126a
-    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v26d357c
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:vafd8a55
     container_name: fayon-app
     restart: unless-stopped
     network_mode: host
     environment:
       - TZ=Asia/Shanghai
-      - HOST_NODE=1
+      - HOST_NODE=21
       - GF_GCFG_FILE=./config/config.prod.yaml
     volumes:
       - ./logs:/app/logs
@@ -18,13 +18,13 @@ services:
 
   fayon-cron:
     #image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v5c1126a
-    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v26d357c
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:vafd8a55
     container_name: fayon-cmd
     restart: unless-stopped
     network_mode: host
     environment:
       - TZ=Asia/Shanghai
-      - HOST_NODE=2
+      - HOST_NODE=22
       - GF_GCFG_FILE=./config/config.prod.yaml
     volumes:
       - ./logs:/app/logs
@@ -34,13 +34,13 @@ services:
 
   fayon-consume:
     #image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v5c1126a
-    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v26d357c
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:vafd8a55
     container_name: fayon-consume
     restart: unless-stopped
     network_mode: host
     environment:
       - TZ=Asia/Shanghai
-      - HOST_NODE=3
+      - HOST_NODE=23
       - GF_GCFG_FILE=./config/config.prod.yaml
     volumes:
       - ./logs:/app/logs
