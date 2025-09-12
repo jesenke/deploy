@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  fayon-parseip:
+    #image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:v5c1126a
+    image: crpi-dpwp83ztynfc9y23.cn-hangzhou.personal.cr.aliyuncs.com/fayon/fayon:vafd8a55
+    container_name: fayon-parseip
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=Asia/Shanghai
+      - HOST_NODE=14
+      - GF_GCFG_FILE=./config/config.prod.yaml
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    command: [ "/app/fayon", "--service=parseip" ]
