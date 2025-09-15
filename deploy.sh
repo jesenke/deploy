@@ -25,8 +25,8 @@ VERSION_FILE="app/deploy/server/deploy-versions.log"
 SERVICES_CONF="$COMPOSE_DIR/services.conf"
 
 # SSH/SCP 稳健参数，降低网络抖动影响
-SSH_OPTS="-o ConnectTimeout=5 -o ServerAliveInterval=30 -o ServerAliveCountMax=1 -o IPQoS=none -o ConnectionAttempts=1"
-SCP_OPTS="-o ConnectTimeout=5 -o ServerAliveInterval=30 -o ServerAliveCountMax=1 -o IPQoS=none -o ConnectionAttempts=1"
+SSH_OPTS="-o ConnectTimeout=5 -o ServerAliveInterval=30 -o ServerAliveCountMax=1 -o IPQoS=none -o ConnectionAttempts=1 -o GSSAPIAuthentication=no -C"
+SCP_OPTS="-o ConnectTimeout=5 -o ServerAliveInterval=30 -o ServerAliveCountMax=1 -o IPQoS=none -o ConnectionAttempts=1 -O -o GSSAPIAuthentication=no -C"
 
 SERVICES="fayon-app fayon-cron fayon-consume fayon-parseip fayon-greeter"
 
@@ -115,7 +115,8 @@ backup_server_config() {
     local backup_file="$backup_dir/docker-compose-backup-$timestamp-$version.tar.gz"
 
     echo "�� 备份当前配置..."
-    ssh $SSH_OPTS "$server" "mkdir -p $backup_dir && cd /root/server && tar -czf $backup_file *.yaml 2>/dev/null || true"
+    ssh $SSH_OPTS "$server" "mkdir -p $backup_dir"
+    ssh $SSH_OPTS "$server" "cd /root/server && tar -czf $backup_file --warning=no-file-changed --ignore-failed-read *.yaml 2>/dev/null || true"
     echo "✅ 备份完成: $backup_file"
 }
 
@@ -131,7 +132,7 @@ record_version() {
 # 获取当前版本（扫描所有 compose yaml）
 get_current_version() {
     local server="$1"
-    ssh $SSH_OPTS "$server" "grep -ho 'image:.*:[^[:space:]]*' /root/server/*.yaml 2>/dev/null | head -1 | awk -F: '{print \\$NF}'"
+    ssh $SSH_OPTS "$server" "grep -ho 'image:.*:[^[:space:]]*' /root/server/*.yaml 2>/dev/null | head -1 | awk -F: '{print $NF}'"
 }
 
 # 获取上一个版本
@@ -279,7 +280,20 @@ deploy_version() {
 
     # 同步到服务器
     info "复制文件到服务器..."
-    scp $SCP_OPTS "$TEMP_DIR"/*.yaml "$server:/root/server/"
+    # 简单重试机制，最多重试3次，间隔3秒
+    {
+        try=1
+        while true; do
+            scp $SCP_OPTS "$TEMP_DIR"/*.yaml "$server:/root/server/" && break
+            if [ $try -ge 3 ]; then
+                error "scp 失败（已重试 $try 次）"
+                break
+            fi
+            warn "scp 超时/失败，$try 次重试后继续..."
+            try=$((try+1))
+            sleep 3
+        done
+    }
 
     info "启动服务..."
     # 逐个 compose 文件启动并记录结果
