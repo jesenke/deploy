@@ -24,6 +24,10 @@ COMPOSE_DIR="app/deploy/server"
 VERSION_FILE="app/deploy/server/deploy-versions.log"
 SERVICES_CONF="$COMPOSE_DIR/services.conf"
 
+# SSH/SCP 稳健参数，降低网络抖动影响
+SSH_OPTS="-o ConnectTimeout=5 -o ServerAliveInterval=30 -o ServerAliveCountMax=1 -o IPQoS=none -o ConnectionAttempts=1"
+SCP_OPTS="-o ConnectTimeout=5 -o ServerAliveInterval=30 -o ServerAliveCountMax=1 -o IPQoS=none -o ConnectionAttempts=1"
+
 SERVICES="fayon-app fayon-cron fayon-consume fayon-parseip fayon-greeter"
 
 # 从 services.conf 加载服务列表（如存在）
@@ -110,8 +114,8 @@ backup_server_config() {
     local timestamp=$(date '+%Y%m%d-%H%M%S')
     local backup_file="$backup_dir/docker-compose-backup-$timestamp-$version.tar.gz"
 
-    echo "📦 备份当前配置..."
-    ssh "$server" "mkdir -p $backup_dir && cd /root/server && tar -czf $backup_file *.yaml 2>/dev/null || true"
+    echo "�� 备份当前配置..."
+    ssh $SSH_OPTS "$server" "mkdir -p $backup_dir && cd /root/server && tar -czf $backup_file *.yaml 2>/dev/null || true"
     echo "✅ 备份完成: $backup_file"
 }
 
@@ -127,7 +131,7 @@ record_version() {
 # 获取当前版本（扫描所有 compose yaml）
 get_current_version() {
     local server="$1"
-    ssh "$server" "grep -ho 'image:.*:[^[:space:]]*' /root/server/*.yaml 2>/dev/null | head -1 | awk -F: '{print \$NF}'"
+    ssh $SSH_OPTS "$server" "grep -ho 'image:.*:[^[:space:]]*' /root/server/*.yaml 2>/dev/null | head -1 | awk -F: '{print \\$NF}'"
 }
 
 # 获取上一个版本
@@ -145,7 +149,7 @@ get_previous_version() {
 # 获取备份文件列表
 get_backup_files() {
     local server="$1"
-    ssh "$server" "ls -la /root/server/backups/docker-compose-backup-*.tar.gz 2>/dev/null | tail -5" || echo "暂无备份文件"
+    ssh $SSH_OPTS "$server" "ls -la /root/server/backups/docker-compose-backup-*.tar.gz 2>/dev/null | tail -5" || echo "暂无备份文件"
 }
 
 # 为每个服务更新HOST_NODE（按服务名赋值）
@@ -275,7 +279,7 @@ deploy_version() {
 
     # 同步到服务器
     info "复制文件到服务器..."
-    scp "$TEMP_DIR"/*.yaml "$server:/root/server/"
+    scp $SCP_OPTS "$TEMP_DIR"/*.yaml "$server:/root/server/"
 
     info "启动服务..."
     # 逐个 compose 文件启动并记录结果
@@ -283,7 +287,7 @@ deploy_version() {
     for file in "$TEMP_DIR"/*.yaml; do
         local base=$(basename "$file")
         local out
-        out=$(ssh "$server" "cd /root/server && docker compose -f $base up -d 2>&1")
+        out=$(ssh $SSH_OPTS "$server" "cd /root/server && docker compose -f $base up -d 2>&1")
         if [ $? -eq 0 ]; then
             success "$base 部署成功"
             debug "$out"
@@ -382,7 +386,7 @@ restore_from_backup() {
     fi
 
     echo "🔄 从备份恢复: $backup_file"
-    ssh "$server" "cd /root/server && rm -f *.yaml && tar -xzf /root/server/backups/$backup_file && docker compose ls >/dev/null 2>&1; if [ $? -eq 0 ]; then for f in *.yaml; do docker compose -f \$f up -d; done; else docker-compose up -d; fi"
+    ssh $SSH_OPTS "$server" "cd /root/server && rm -f *.yaml && tar -xzf /root/server/backups/$backup_file && docker compose ls >/dev/null 2>&1; if [ $? -eq 0 ]; then for f in *.yaml; do docker compose -f \\$f up -d; done; else docker-compose up -d; fi"
     echo "✅ 恢复完成"
 }
 
