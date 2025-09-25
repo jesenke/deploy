@@ -301,8 +301,20 @@ deploy_version() {
     for file in "$TEMP_DIR"/*.yaml; do
         local base=$(basename "$file")
         local out
-        out=$(ssh $SSH_OPTS "$server" "cd /root/server && docker compose -f $base up -d 2>&1")
-        if [ $? -eq 0 ]; then
+        {
+            try=1
+            success_flag=0
+            while true; do
+                out=$(ssh $SSH_OPTS "$server" "cd /root/server && docker compose -f $base up -d 2>&1") && success_flag=1 && break
+                if [ $try -ge 3 ]; then
+                    break
+                fi
+                warn "远端 docker compose 执行失败/超时，$try 次重试后继续..."
+                try=$((try+1))
+                sleep 3
+            done
+        }
+        if [ "$success_flag" = "1" ]; then
             success "$base 部署成功"
             debug "$out"
             results+="ok:$base\n"
