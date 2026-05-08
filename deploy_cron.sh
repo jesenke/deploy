@@ -4,7 +4,7 @@
 # 在ali3
 set -euo pipefail
 
-server="$1"
+server="ali3"
 version="$2"
 action="${3:-deploy}"
 
