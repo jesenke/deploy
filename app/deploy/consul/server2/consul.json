@@ -11,7 +11,7 @@
   "bind_addr": "0.0.0.0",
   "advertise_addr": "172.17.178.196",
   "client_addr": "0.0.0.0",
-  "ui_config": false,
+  "ui": false,
   "retry_join": ["172.17.178.197", "172.17.178.196", "172.17.178.195"],
   "enable_local_script_checks": true,
   "ports": {
