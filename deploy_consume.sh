@@ -2,6 +2,11 @@
 # 用法: ./deploy_consume.sh <服务器|序号1-5> <版本号> [动作]
 # 示例: ./deploy_consume.sh ali1 vX.Y.Z
 # 在ali2
+
+echo "========================================"
+echo "开始部署时间: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "========================================"
+
 set -euo pipefail
 
 server="$1"
