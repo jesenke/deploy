@@ -46,3 +46,7 @@ server1  3af9a31f-5313-07ca-5c53-079deb9386e3  172.17.178.197:8300  follower  tr
 server2  92924082-0302-7ae8-2ed7-2b6d65510eba  172.17.178.196:8300  leader    true   3             91            -
 server3  e8566342-4c0f-7a53-54c9-c07c4bc959dd  172.17.178.195:8300  follower  true   3             91            0 commits
 ```
+
+```cgo
+服务若出现不一致需要重启，需要删除data、logs，避免数据混乱
+```
