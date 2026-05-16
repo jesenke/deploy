@@ -9,7 +9,7 @@
   "server": true,
   "bootstrap_expect": 3,
   "bind_addr": "0.0.0.0",
-  "advertise_addr": "172.17.178.197",
+  "advertise_addr": "172.17.178.195",
   "client_addr": "0.0.0.0",
   "ui_config": false,
   "retry_join": ["172.17.178.197", "172.17.178.196", "172.17.178.195"],
