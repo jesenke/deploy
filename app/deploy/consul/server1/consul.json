@@ -8,7 +8,7 @@
   "node_name": "server1",
   "server": true,
   "bootstrap_expect": 3,
-  "bind_addr": "172.17.178.197",
+  "bind_addr": "0.0.0.0",
   "advertise_addr": "172.17.178.197",
   "client_addr": "0.0.0.0",
   "ui": true,
